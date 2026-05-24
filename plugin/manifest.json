@@ -20,7 +20,9 @@
     {
       "name": "echo",
       "description": "Echo a message through the plugin result channel.",
-      "params": ["message"]
+      "params": [
+        "message"
+      ]
     }
   ]
 }
