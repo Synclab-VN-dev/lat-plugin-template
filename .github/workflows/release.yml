@@ -17,14 +17,28 @@ name: Release LAT Plugin
         description: "Create release as draft (true/false)"
         required: true
         default: "false"
+      use_self_hosted:
+        description: "Run job on self-hosted runner (true/false)"
+        required: true
+        default: "false"
+      self_hosted_linux_labels:
+        description: 'JSON array labels for Linux self-hosted runner (e.g. ["self-hosted","linux","x64"])'
+        required: true
+        default: '["self-hosted","linux","x64"]'
 
 permissions:
   contents: write
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.inputs.use_self_hosted == 'true' && fromJson(github.event.inputs.self_hosted_linux_labels) || 'ubuntu-latest' }}
     steps:
+      - name: Runner mode
+        shell: bash
+        run: |
+          echo "use_self_hosted=${{ github.event.inputs.use_self_hosted }}"
+          echo "self_hosted_linux_labels=${{ github.event.inputs.self_hosted_linux_labels }}"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
