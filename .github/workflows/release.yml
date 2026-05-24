@@ -57,13 +57,7 @@ jobs:
             --output-dir dist \
             --metadata-file dist/package-metadata.json
 
-          PACKAGE_PATH=$(python - <<'PY'
-import json
-from pathlib import Path
-metadata = json.loads(Path("dist/package-metadata.json").read_text(encoding="utf-8"))
-print(metadata["package_path"])
-PY
-)
+          PACKAGE_PATH=$(python -c 'import json; from pathlib import Path; metadata=json.loads(Path("dist/package-metadata.json").read_text(encoding="utf-8")); print(metadata["package_path"])')
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "package_path=$PACKAGE_PATH" >> "$GITHUB_OUTPUT"
