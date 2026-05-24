@@ -1,0 +1,110 @@
+name: Release LAT Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Plugin version, e.g. 0.1.0"
+        required: true
+      tag:
+        description: "Release tag. Empty defaults to v<version>."
+        required: false
+      prerelease:
+        description: "Mark release as prerelease (true/false)"
+        required: true
+        default: "false"
+      draft:
+        description: "Create release as draft (true/false)"
+        required: true
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Package plugin
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          TAG="${{ inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="v${VERSION#v}"
+          fi
+
+          python scripts/package_plugin.py \
+            --version "$VERSION" \
+            --sync-version \
+            --output-dir dist \
+            --metadata-file dist/package-metadata.json
+
+          PACKAGE_PATH=$(python - <<'PY'
+import json
+from pathlib import Path
+metadata = json.loads(Path("dist/package-metadata.json").read_text(encoding="utf-8"))
+print(metadata["package_path"])
+PY
+)
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "package_path=$PACKAGE_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- manifest.json plugin/manifest.json lat-agent.json; then
+            git add manifest.json plugin/manifest.json lat-agent.json
+            git commit -m "chore: release ${{ steps.package.outputs.tag }}"
+            git push origin HEAD:${{ github.ref_name }}
+          else
+            echo "No version file changes to commit."
+          fi
+
+      - name: Create tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.package.outputs.tag }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag already exists: $TAG"
+            exit 1
+          fi
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.package.outputs.tag }}"
+          PACKAGE_PATH="${{ steps.package.outputs.package_path }}"
+          ARGS=(--verify-tag --title "$TAG" --notes "LAT plugin release $TAG.")
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            ARGS+=(--prerelease)
+          fi
+          if [ "${{ inputs.draft }}" = "true" ]; then
+            ARGS+=(--draft)
+          fi
+          gh release create "$TAG" "$PACKAGE_PATH" "${ARGS[@]}"

@@ -1,0 +1,26 @@
+{
+  "id": "lat-plugin-template",
+  "version": "0.1.0",
+  "entry": "main.py",
+  "entry_type": "python",
+  "runtime": {
+    "type": "agent"
+  },
+  "args": [
+    "--action={action}",
+    "--message={message}"
+  ],
+  "timeout": 60,
+  "actions": [
+    {
+      "name": "health",
+      "description": "Return plugin health information.",
+      "params": []
+    },
+    {
+      "name": "echo",
+      "description": "Echo a message through the plugin result channel.",
+      "params": ["message"]
+    }
+  ]
+}

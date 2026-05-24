@@ -1,0 +1,2 @@
+# Add plugin-specific Python dependencies here.
+# If dependencies are required, update manifest.json runtime.type to "venv".

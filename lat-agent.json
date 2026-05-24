@@ -1,0 +1,11 @@
+{
+  "package_type": "lat_plugin",
+  "plugin": {
+    "id": "lat-plugin-template",
+    "version": "0.1.0",
+    "manifest_path": "plugin/manifest.json"
+  },
+  "install": {
+    "source_dir": "plugin"
+  }
+}
